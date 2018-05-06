@@ -5,7 +5,6 @@ import com.tdmax.university.entities.Speciality;
 import com.tdmax.university.entities.Student;
 import com.tdmax.university.repositories.CafedraRepository;
 import com.tdmax.university.repositories.SpecialityRepository;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
@@ -58,9 +57,26 @@ public class UniversityController {
     }
 
     @RequestMapping(path="/privilegedStudents")
-    public @ResponseBody Iterable<Student> privilegedStudents() {
+    public @ResponseBody Iterable<Student> privilegedStudents(@RequestParam(value="name", required = false) String cafedraName) {
 
-        final String PRIVILEGED_STUDENTS = "SELECT student_id, name, surname, patronymic, sp.privilege_name FROM student s INNER JOIN person p on s.person_id = p.person_id INNER JOIN person_privilege pp on p.person_id = pp.person_id INNER JOIN sprivilege sp on pp.privilege_id = sp.privilege_id";
+        final String PRIVILEGED_STUDENTS_TEMP = "SELECT DISTINCT s.student_id, name, surname, patronymic, sp.privilege_name, cafedra_name " +
+                "FROM student s " +
+                "INNER JOIN person p on s.person_id = p.person_id " +
+                "INNER JOIN person_privilege pp on p.person_id = pp.person_id " +
+                "INNER JOIN sprivilege sp on pp.privilege_id = sp.privilege_id " +
+                "INNER JOIN student_group sg on s.student_id = sg.student_id " +
+                "INNER JOIN groups g on sg.group_id = g.group_id " +
+                "INNER JOIN speciality spec on g.speciality_id = spec.speciality_id " +
+                "INNER JOIN cafedra caf on spec.cafedra_id = caf.cafedra_id " +
+                "WHERE (1 = 1) ";
+
+        String PRIVILEGED_STUDENTS = "";
+
+        if (cafedraName != null) {
+            PRIVILEGED_STUDENTS = PRIVILEGED_STUDENTS_TEMP + "AND cafedra_name = '" + cafedraName + "'";
+        } else {
+            PRIVILEGED_STUDENTS = PRIVILEGED_STUDENTS_TEMP;
+        }
 
         Query q1 = entityManager.createNativeQuery(PRIVILEGED_STUDENTS);
         List<Student> privilegedStudentsList = q1.getResultList();
